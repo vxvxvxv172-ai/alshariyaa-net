@@ -7,6 +7,7 @@ import "./globals.css";
 import ClientLayout from "./components/ClientLayout";
 import Footer from "./components/Footer";
 import { getCompanyData } from "./lib/company";
+import { Analytics } from "@vercel/analytics/next";
 
 const cairo = Cairo({
   subsets: ["arabic", "latin"],
@@ -126,6 +127,7 @@ export default async function RootLayout({
         <ClientLayout footer={<Footer company={company} />} whatsapp={company.whatsapp}>
           {children}
         </ClientLayout>
+        <Analytics />
       </body>
     </html>
   );
