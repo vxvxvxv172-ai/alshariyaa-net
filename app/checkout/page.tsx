@@ -13,6 +13,7 @@ import CheckoutPayment from "./CheckoutPayment";
 import CustomerSection, { validateCustomer } from "./CustomerSection";
 import type { CustomerData } from "./CustomerSection";
 import { useAuthStore } from "../store/authStore";
+import { trackPurchaseConversion } from "../lib/gtag";
 
 const fmt = (n: number) => n.toLocaleString("en-US");
 const API = process.env.NEXT_PUBLIC_API_URL || "https://alshareehasim-backend.vercel.app";
@@ -141,6 +142,13 @@ export default function CheckoutPage() {
       const data = await res.json();
       if (res.status === 429) { recordAttempt(); return; }
       recordAttempt();
+      if (data?.orderId) {
+        trackPurchaseConversion({
+          transactionId: data.orderId,
+          value: finalTotal,
+          currency: "SAR",
+        });
+      }
     } catch { /* silent */ }
     setLoading(false);
     setCustomer({ name: fullName, nationalId: "", whatsapp: customer.phone, address, installmentType: "full", months: 0, downPayment: 0 } as CustomerInfo);

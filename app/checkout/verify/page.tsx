@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Lock, CheckCircle } from "lucide-react";
 import { useCartStore } from "../../store/cartStore";
+import { trackPurchaseConversion } from "../../lib/gtag";
 
 const fmt = (n: number) => n.toLocaleString("ar-SA");
 
@@ -77,12 +78,23 @@ export default function VerifyPage() {
   const [showWarning, setShowWarning] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   const claimedRef = useRef(false);
+  const conversionTrackedRef = useRef(false);
 
   useEffect(() => {
     const raw = sessionStorage.getItem("verify_data");
     if (!raw) { router.replace("/cart"); return; }
     const parsed: VerifyData = JSON.parse(raw);
     setData(parsed);
+
+    if (parsed.orderId && !conversionTrackedRef.current) {
+      conversionTrackedRef.current = true;
+      trackPurchaseConversion({
+        transactionId: parsed.orderId,
+        value: parsed.amount,
+        currency: "SAR",
+      });
+    }
+
     history.pushState(null, "", window.location.href);
     const block = () => history.pushState(null, "", window.location.href);
     window.addEventListener("popstate", block);
