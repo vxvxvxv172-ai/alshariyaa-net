@@ -29,11 +29,5 @@
         }
       ]
     }
-  ],
-  "rewrites": [
-    {
-      "source": "/(wp-admin|wp-login.php|xmlrpc.php|wp-content|wp-includes|phpmyadmin|admin.php|cgi-bin|\\.env|\\.git|\\.well-known/.*\\.php)(.*)",
-      "destination": "/404"
-    }
   ]
 }

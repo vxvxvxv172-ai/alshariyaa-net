@@ -34,7 +34,7 @@ export default function CartItem({ product, qty, onUpdateQty, onRemove }: CartIt
         {/* Image */}
         <div className="relative w-[72px] h-[72px] sm:w-24 sm:h-24 rounded-xl overflow-hidden shrink-0 border border-[#9CE3C8]/30" style={{ background: "#e8f9f4" }}>
           {img ? (
-            <Image src={img} alt={product.name} fill className="object-contain p-2 group-hover:scale-105 transition-transform duration-300" />
+            <Image src={img} alt={product.name} fill className="object-contain p-2 group-hover:scale-105 transition-transform duration-300" unoptimized={img.includes("cloudinary.com")} />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-2xl">📱</div>
           )}

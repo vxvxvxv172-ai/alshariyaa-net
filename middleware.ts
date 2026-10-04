@@ -28,8 +28,15 @@ const SECURITY_HEADERS: [string, string][] = [
   ['Permissions-Policy', 'camera=(), microphone=(), geolocation=(self)'],
 ];
 
+const BOT_SCANNER_REGEX = /^\/(?:wp-admin|wp-login\.php|xmlrpc\.php|wp-content|wp-includes|phpmyadmin|admin\.php|cgi-bin|\.env|\.git|\.well-known\/.*\.php)/i;
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // إرجاع 404 فوري من Edge للبوتات والماسحات الأمنية دون استدعاء السيرفرلس أو رندرة الـ Layout
+  if (BOT_SCANNER_REGEX.test(pathname)) {
+    return new NextResponse('Not Found', { status: 404 });
+  }
 
   // Maintenance mode redirect (تجاهل API و maintenance نفسها)
   if (
@@ -55,7 +62,7 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     {
-      source: '/((?!_next/static|_next/image|favicon.ico|apple-icon.png|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|woff2?|ttf|eot)).*)',
+      source: '/((?!_next/static|_next/image|favicon.ico|apple-icon.png|robots.txt|sitemap.xml|manifest.json|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|woff2?|ttf|eot)).*)',
       missing: [
         { type: 'header', key: 'next-router-prefetch' },
         { type: 'header', key: 'purpose', value: 'prefetch' },
