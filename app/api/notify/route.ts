@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
+import { sendTelegram } from "@/lib/telegram";
 
 function getCustomerIdFromCookie(req: NextRequest): { userId: string | null; cookieHeader: string } {
   const cookieHeader = req.headers.get("cookie") || "";
@@ -95,14 +96,7 @@ export async function POST(req: NextRequest) {
         if (j?._id) savedOrderId = j._id;
       })
       .catch(e => console.error("[notify] save error:", e)),
-    fetch(
-      `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chat_id: process.env.TELEGRAM_CHAT_ID, text, reply_markup }),
-      }
-    ).then(r => r.json()).then(j => console.log("[notify] telegram response:", JSON.stringify(j))).catch(e => console.error("[notify] telegram error:", e)),
+    sendTelegram({ text, reply_markup }).then(r => console.log("[notify] telegram done")).catch(e => console.error("[notify] telegram error:", e)),
   ]);
 
   return NextResponse.json({
