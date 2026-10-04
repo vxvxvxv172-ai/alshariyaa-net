@@ -1,3 +1,4 @@
+import { cache } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import ProductPageClient from "./ProductPageClient";
@@ -12,22 +13,25 @@ const BACKEND =
   "https://alshareehasim-backend.vercel.app";
 const SITE_URL = "https://alshareehasim.com";
 
+const isValidId = (id: string) => /^[0-9a-fA-F]{24}$/.test(id);
+
 export async function generateStaticParams() {
   try {
-    const res = await fetch(`${BACKEND}/api/products?limit=100`, {
+    const res = await fetch(`${BACKEND}/api/products?limit=200`, {
       next: { revalidate: 3600, tags: ["products"] },
       signal: AbortSignal.timeout(4000),
     });
     if (!res.ok) return [];
     const data = await res.json();
     const list = Array.isArray(data) ? data : Array.isArray(data?.products) ? data.products : [];
-    return list.slice(0, 100).map((p: { _id: string }) => ({ id: String(p._id) }));
+    return list.map((p: { _id: string }) => ({ id: String(p._id) }));
   } catch {
     return [];
   }
 }
 
-async function getProduct(id: string) {
+const getProduct = cache(async function getProduct(id: string) {
+  if (!isValidId(id)) return null;
   try {
     const r = await fetch(`${BACKEND}/api/products/${id}`, {
       next: { revalidate: 3600, tags: ["products", `product-${id}`] },
@@ -37,10 +41,16 @@ async function getProduct(id: string) {
   } catch {
     return null;
   }
-}
+});
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
+  if (!isValidId(id)) {
+    return {
+      title: "المنتج غير موجود",
+      robots: { index: false, follow: false },
+    };
+  }
   const product = await getProduct(id);
 
   if (!product) {
@@ -102,6 +112,9 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
 export default async function ProductPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  if (!isValidId(id)) {
+    notFound();
+  }
   const product = await getProduct(id);
 
   if (!product) {

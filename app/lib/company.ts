@@ -1,3 +1,5 @@
+import { cache } from "react";
+
 const BACKEND =
   process.env.BACKEND_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
@@ -30,7 +32,7 @@ export interface CompanyData {
   link2?: string;
 }
 
-export async function getCompanyData(): Promise<CompanyData> {
+export const getCompanyData = cache(async function getCompanyData(): Promise<CompanyData> {
   try {
     const res = await fetch(`${BACKEND}/api/admin/company/public`, {
       next: { revalidate: 3600, tags: ["company"] },
@@ -41,4 +43,5 @@ export async function getCompanyData(): Promise<CompanyData> {
   } catch {
     return {};
   }
-}
+});
+

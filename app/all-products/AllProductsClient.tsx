@@ -24,16 +24,24 @@ export default function AllProductsClient({
   const searchParams = useSearchParams();
   const brand = searchParams.get("brand") ?? "";
 
-  const isInitialMatch = brand === initialBrand && initialProducts.length > 0;
-  const [rawProducts, setRawProducts] = useState<Product[]>(isInitialMatch ? initialProducts : []);
-  const [loading, setLoading] = useState(!isInitialMatch);
+  const filterByBrand = (list: Product[], b: string) => {
+    if (!b) return sortProducts(list, false);
+    const pattern = new RegExp(b.trim(), "i");
+    const matched = list.filter((p) => pattern.test(p.brand ?? ""));
+    return sortProducts(matched.length > 0 ? matched : list, true);
+  };
+
+  const [rawProducts, setRawProducts] = useState<Product[]>(() =>
+    initialProducts.length > 0 ? filterByBrand(initialProducts, brand) : []
+  );
+  const [loading, setLoading] = useState(initialProducts.length === 0);
   const [page, setPage] = useState(1);
 
   const { filters, filtered } = useProductFilters(rawProducts);
 
   useEffect(() => {
-    if (brand === initialBrand && initialProducts.length > 0) {
-      setRawProducts(initialProducts);
+    if (initialProducts.length > 0) {
+      setRawProducts(filterByBrand(initialProducts, brand));
       setLoading(false);
       return;
     }
@@ -50,7 +58,7 @@ export default function AllProductsClient({
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [brand, initialBrand, initialProducts]);
+  }, [brand, initialProducts]);
 
   const [prevFilters, setPrevFilters] = useState(filters);
   if (prevFilters !== filters) { setPrevFilters(filters); if (page !== 1) setPage(1); }

@@ -31,17 +31,15 @@ async function getProducts(brand?: string): Promise<Product[]> {
   }
 }
 
-export default async function AllProductsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ brand?: string }>;
-}) {
-  const { brand } = await searchParams;
-  const products = await getProducts(brand);
+export const revalidate = 3600;
+
+export default async function AllProductsPage() {
+  const products = await getProducts();
 
   return (
     <Suspense>
-      <AllProductsClient initialProducts={products} initialBrand={brand || ""} />
+      <AllProductsClient initialProducts={products} />
     </Suspense>
   );
 }
+

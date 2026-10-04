@@ -1,5 +1,7 @@
 import { MetadataRoute } from "next";
 
+export const revalidate = 86400;
+
 const BASE_URL = "https://alshareehasim.com";
 const BACKEND_URL = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || "https://alshareehasim-backend.vercel.app";
 

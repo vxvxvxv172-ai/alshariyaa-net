@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import {
   Eye, Printer, CreditCard, FileText, CheckCircle, XCircle,
-  FileX, Trash2, ChevronLeft, ChevronRight, Search, RefreshCw,
+  FileX, Trash2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search, RefreshCw,
 } from "lucide-react";
 import { Order, STATUS } from "./[id]/types";
 
@@ -19,12 +19,13 @@ interface OrdersResponse {
   totalPages: number;
 }
 
-const LIMIT = 20;
+const DEFAULT_LIMIT = 20;
 
 export default function OrdersPage() {
   const router = useRouter();
 
-  const [data, setData] = useState<OrdersResponse>({ orders: [], total: 0, page: 1, limit: LIMIT, totalPages: 0 });
+  const [limit, setLimit] = useState(DEFAULT_LIMIT);
+  const [data, setData] = useState<OrdersResponse>({ orders: [], total: 0, page: 1, limit: DEFAULT_LIMIT, totalPages: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,10 +45,10 @@ export default function OrdersPage() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  const buildQuery = useCallback((p: number, s: string) => {
+  const buildQuery = useCallback((p: number, s: string, l: number) => {
     const q = new URLSearchParams({
       page: String(p),
-      limit: String(LIMIT),
+      limit: String(l),
       sortField,
       sortDir,
     });
@@ -58,7 +59,7 @@ export default function OrdersPage() {
     return q.toString();
   }, [sortField, sortDir, statusFilter, dateFrom, dateTo]);
 
-  const fetchOrders = useCallback(async (p: number, s: string, showLoading = true) => {
+  const fetchOrders = useCallback(async (p: number, s: string, l: number, showLoading = true) => {
     if (abortRef.current) abortRef.current.abort();
     abortRef.current = new AbortController();
 
@@ -66,12 +67,21 @@ export default function OrdersPage() {
     setError(null);
 
     try {
-      const res = await fetch(`/api/admin/orders?${buildQuery(p, s)}`, {
+      const res = await fetch(`/api/admin/orders?${buildQuery(p, s, l)}`, {
         signal: abortRef.current.signal,
       });
       if (!res.ok) throw new Error("فشل جلب الطلبات");
       const json = await res.json();
-      setData({ orders: [], total: 0, page: 1, limit: LIMIT, totalPages: 0, ...json, ...(Array.isArray(json?.orders) ? {} : { orders: [] }) } as OrdersResponse);
+      const total = typeof json?.total === "number" ? json.total : (Array.isArray(json?.orders) ? json.orders.length : 0);
+      const resLimit = Number(json?.limit) || l;
+      const totalPages = Number(json?.totalPages) || Number(json?.pages) || (total > 0 ? Math.ceil(total / resLimit) : 1);
+      setData({
+        orders: Array.isArray(json?.orders) ? json.orders : [],
+        total,
+        page: Number(json?.page) || p,
+        limit: resLimit,
+        totalPages,
+      });
     } catch (err: unknown) {
       if (err instanceof Error && err.name === "AbortError") return;
       setError("تعذّر تحميل الطلبات، تحقق من الاتصال");
@@ -90,10 +100,10 @@ export default function OrdersPage() {
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [search]);
 
-  // fetch on filter/page/sort change
+  // fetch on filter/page/sort/limit change
   useEffect(() => {
-    fetchOrders(page, debouncedSearch);
-  }, [page, debouncedSearch, statusFilter, dateFrom, dateTo, sortField, sortDir, fetchOrders]);
+    fetchOrders(page, debouncedSearch, limit);
+  }, [page, debouncedSearch, limit, statusFilter, dateFrom, dateTo, sortField, sortDir, fetchOrders]);
 
 
 
@@ -142,12 +152,21 @@ export default function OrdersPage() {
     try {
       const res = await fetch(`/api/admin/orders/${id}`, { method: "DELETE" });
       if (res.ok) {
-        setData((prev) => ({
-          ...prev,
-          orders: prev.orders.filter((o) => o._id !== id),
-          total: prev.total - 1,
-        }));
+        setData((prev) => {
+          const newTotal = Math.max(0, prev.total - 1);
+          const newOrders = prev.orders.filter((o) => o._id !== id);
+          const newTotalPages = Math.max(1, Math.ceil(newTotal / prev.limit));
+          return {
+            ...prev,
+            orders: newOrders,
+            total: newTotal,
+            totalPages: newTotalPages,
+          };
+        });
         toast.success("تم حذف الطلب ✅");
+        if (data.orders.length === 1 && page > 1) {
+          setPage((p) => p - 1);
+        }
       } else {
         toast.error("فشل الحذف");
       }
@@ -193,7 +212,7 @@ export default function OrdersPage() {
           )}
         </h1>
         <button
-          onClick={() => fetchOrders(page, debouncedSearch)}
+          onClick={() => fetchOrders(page, debouncedSearch, limit)}
           className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-purple-600 bg-white border border-gray-200 px-3 py-1.5 rounded-lg transition-colors"
         >
           <RefreshCw size={14} />
@@ -309,7 +328,7 @@ export default function OrdersPage() {
               ) : (
                 data.orders.map((o, i) => (
                   <tr key={o._id} className="hover:bg-gray-50 text-base">
-                    <td className="px-4 py-3 text-gray-400 font-medium">{(page - 1) * LIMIT + i + 1}</td>
+                    <td className="px-4 py-3 text-gray-400 font-medium">{(page - 1) * limit + i + 1}</td>
                     <td className="px-4 py-3 font-medium text-gray-800">{o.customer || "—"}</td>
                     <td className="px-4 py-3" dir="ltr">
                       {o.whatsapp ? (
@@ -380,38 +399,91 @@ export default function OrdersPage() {
         </div>
 
         {/* Pagination */}
-        {data.totalPages > 1 && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 px-4 py-3 border-t border-gray-100 text-sm text-gray-500">
-            <span>
-              عرض {(page - 1) * LIMIT + 1}–{Math.min(page * LIMIT, data.total)} من {data.total.toLocaleString("ar-EG")}
-            </span>
+        {data.total > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-gray-100 text-sm text-gray-600 bg-gray-50/50">
+            <div className="flex items-center gap-3">
+              <span>
+                عرض {Math.min((page - 1) * limit + 1, data.total)}–{Math.min(page * limit, data.total)} من {data.total.toLocaleString("ar-EG")} طلب
+              </span>
+              <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                <span>لكل صفحة:</span>
+                <select
+                  value={limit}
+                  onChange={(e) => {
+                    const newLimit = Number(e.target.value);
+                    setLimit(newLimit);
+                    setPage(1);
+                  }}
+                  className="border border-gray-300 rounded px-2 py-1 bg-white text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-purple-500 cursor-pointer"
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </div>
+            </div>
+
             <div className="flex items-center gap-1 flex-wrap justify-center">
+              {/* First Page */}
+              <button
+                onClick={() => setPage(1)}
+                disabled={page <= 1}
+                title="الصفحة الأولى"
+                className="p-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronsRight size={16} />
+              </button>
+
+              {/* Previous Page */}
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="p-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-40"
+                disabled={page <= 1}
+                title="الصفحة السابقة"
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-xs font-medium"
               >
                 <ChevronRight size={16} />
+                <span>السابق</span>
               </button>
+
+              {/* Numbered Page Buttons */}
               {paginationPages(page, data.totalPages).map((n, idx) =>
                 n === "..." ? (
-                  <span key={`dots-${idx}`} className="px-2 text-gray-400">…</span>
+                  <span key={`dots-${idx}`} className="px-2 text-gray-400 select-none">…</span>
                 ) : (
                   <button
                     key={n}
                     onClick={() => setPage(n as number)}
-                    className={`px-3 py-1 rounded-lg border ${n === page ? "bg-purple-600 text-white border-purple-600" : "border-gray-200 hover:bg-gray-50"}`}
+                    className={`min-w-[32px] px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors ${
+                      n === page
+                        ? "bg-purple-600 text-white border-purple-600 shadow-sm"
+                        : "border-gray-200 bg-white text-gray-700 hover:bg-gray-100"
+                    }`}
                   >
                     {n}
                   </button>
                 )
               )}
+
+              {/* Next Page */}
               <button
                 onClick={() => setPage((p) => Math.min(data.totalPages, p + 1))}
-                disabled={page === data.totalPages}
-                className="p-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-40"
+                disabled={page >= data.totalPages}
+                title="الصفحة التالية"
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-xs font-medium"
               >
+                <span>التالي</span>
                 <ChevronLeft size={16} />
+              </button>
+
+              {/* Last Page */}
+              <button
+                onClick={() => setPage(data.totalPages)}
+                disabled={page >= data.totalPages}
+                title="الصفحة الأخيرة"
+                className="p-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronsLeft size={16} />
               </button>
             </div>
           </div>

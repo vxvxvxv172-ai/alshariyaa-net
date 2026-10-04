@@ -129,6 +129,7 @@ export default function ProductCard({
                 sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
                 priority={priority}
                 loading={priority ? "eager" : "lazy"}
+                unoptimized={resolvedImage.includes("cloudinary.com")}
               />
             ) : (
               <div className="flex items-center justify-center h-28 sm:h-40 text-4xl sm:text-5xl">📱</div>
