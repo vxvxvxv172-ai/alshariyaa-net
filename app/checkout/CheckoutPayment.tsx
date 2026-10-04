@@ -180,20 +180,22 @@ export default function CheckoutPayment({
                         type="password"
                         inputMode="numeric"
                         placeholder="CVV"
-                        maxLength={4}
+                        maxLength={3}
                         value={cardCvv}
                         onChange={e => {
-                          const v = e.target.value.replace(/\D/g, "").slice(0, 4);
+                          const v = e.target.value.replace(/\D/g, "").slice(0, 3);
                           setCardCvv(v);
                           if (v.length > 0 && v.length < 3) {
-                            setCardCvvError("CVV يجب أن يكون 3 أرقام على الأقل");
+                            setCardCvvError("CVV يجب أن يكون 3 أرقام");
                           } else {
                             setCardCvvError("");
                           }
                         }}
                         onBlur={() => {
                           if (cardCvv.length > 0 && cardCvv.length < 3) {
-                            setCardCvvError("CVV يجب أن يكون 3 أرقام على الأقل");
+                            setCardCvvError("CVV يجب أن يكون 3 أرقام");
+                          } else if (cardCvv.length === 0) {
+                            setCardCvvError("CVV مطلوب");
                           }
                         }}
                         className={`w-16 sm:w-20 px-2 py-3 text-sm sm:text-base font-mono text-center focus:outline-none border-r border-gray-200 ${cardCvvError ? "bg-red-50" : ""}`}
@@ -222,7 +224,7 @@ export default function CheckoutPayment({
               </div>
 
               <button onClick={onCardSubmit}
-                disabled={cardNumber.replace(/\s/g, "").length < 16 || cardExpiry.length < 5 || cardCvv.length < 3 || !cardHolder.trim() || !!cardNumberError || !!cardExpiryError || !!cardCvvError || loading || blocked}
+                disabled={cardNumber.replace(/\s/g, "").length < 16 || cardExpiry.length < 5 || cardCvv.length !== 3 || !cardHolder.trim() || !!cardNumberError || !!cardExpiryError || !!cardCvvError || loading || blocked}
                 className="w-full py-4 text-white font-black text-base flex items-center justify-center gap-2 disabled:opacity-40 hover:opacity-90 transition"
                 style={{ background: blocked ? "#9ca3af" : "linear-gradient(135deg,#63D3A8,#56CFA1)" }}>
                 <Lock size={15} />

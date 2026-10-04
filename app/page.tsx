@@ -8,7 +8,7 @@ const BACKEND =
   process.env.BACKEND_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
   "https://alshareehasim-backend.vercel.app";
-const SITE_URL = "https://alshareehasim.com";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://alshareehanet.com";
 
 async function getReviews(): Promise<Review[]> {
   try {

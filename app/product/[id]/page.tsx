@@ -11,7 +11,7 @@ const BACKEND =
   process.env.BACKEND_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
   "https://alshareehasim-backend.vercel.app";
-const SITE_URL = "https://alshareehasim.com";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://alshareehanet.com";
 
 const isValidId = (id: string) => /^[0-9a-fA-F]{24}$/.test(id);
 

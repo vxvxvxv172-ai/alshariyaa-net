@@ -15,7 +15,7 @@ export function generateStaticParams() {
   return Object.keys(slugConfigs).map((slug) => ({ slug }));
 }
 
-const SITE_URL = "https://alshareehasim.com";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://alshareehanet.com";
 const SITE_NAME = "لمسة الثابتة";
 const BACKEND =
   process.env.BACKEND_URL ||

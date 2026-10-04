@@ -1,14 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const BACKEND = process.env.BACKEND_URL || "https://alshareehasim-backend.vercel.app";
+const BACKEND =
+  process.env.BACKEND_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://alshareehasim-backend.onrender.com";
 
 export async function GET(req: NextRequest) {
   try {
     const cookie = req.headers.get("cookie") || "";
 
-    // If guest user has no customer_token cookie, resolve instantly without hitting backend
-    if (!cookie || (!cookie.includes("customer_token") && !cookie.includes("token"))) {
-      return NextResponse.json({ authenticated: false }, { status: 200 });
+    // التحقق الدقيق من وجود customer_token فقط وليس مجرد كلمة token في أي كوكي أخرى
+    const hasCustomerToken = /(?:^|;\s*)customer_token=([^;]+)/.test(cookie);
+    if (!hasCustomerToken) {
+      return NextResponse.json(
+        { authenticated: false },
+        {
+          status: 200,
+          headers: {
+            "Cache-Control": "private, no-cache, no-store, must-revalidate",
+          },
+        }
+      );
     }
 
     const backendRes = await fetch(`${BACKEND}/api/customers/auth/me`, {

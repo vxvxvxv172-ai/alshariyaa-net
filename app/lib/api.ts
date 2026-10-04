@@ -1,5 +1,10 @@
 const ALLOWED_HOSTS = [
   "localhost",
+  "alshareehanet.com",
+  "www.alshareehanet.com",
+  "alshareehasim.com",
+  "www.alshareehasim.com",
+  "alshareehasim-backend.onrender.com",
   "sahelnahatelecom.com",
   "www.sahelnahatelecom.com",
   "basmat-hatify-store.com",
@@ -18,13 +23,13 @@ function getApiBase(): string {
   if (typeof window !== "undefined") {
     return "";
   }
-  const raw = process.env.NEXT_PUBLIC_API_URL || "https://alshareehasim-backend.vercel.app";
+  const raw = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || "https://alshareehasim-backend.onrender.com";
   try {
     const { hostname, origin } = new URL(raw);
     if (!ALLOWED_HOSTS.includes(hostname)) throw new Error(`Blocked host: ${hostname}`);
     return origin;
   } catch {
-    return "https://alshareehasim-backend.vercel.app";
+    return "https://alshareehasim-backend.onrender.com";
   }
 }
 

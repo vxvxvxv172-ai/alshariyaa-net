@@ -42,24 +42,34 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   loading: true,
   initialized: false,
 
-  setUser: (user) => set({ user }),
+  setUser: (user) => {
+    writeCache(user);
+    if (typeof window !== "undefined") {
+      try {
+        if (user) localStorage.setItem("auth_active", "1");
+        else localStorage.removeItem("auth_active");
+      } catch { /* ignore */ }
+    }
+    set({ user, initialized: true, loading: false });
+  },
+
   setLoading: (loading) => set({ loading }),
 
   fetchMe: async () => {
     if (get().initialized) return;
 
-    // عرض الـ cache فوراً لتجنب الـ flicker
-    const cached = readCache();
-    if (cached) set({ user: cached, loading: false });
+    // فحص محلي: إذا لم يسجل الزائر دخوله مسبقاً، ننهي فوراً دون إرسال أي طلب سيرفرلس
+    if (typeof window !== "undefined") {
+      const cached = readCache();
+      const hasAuth = localStorage.getItem("auth_active") === "1";
 
-    // إذا لم يكن لدى الزائر أي كوكيز تسجيل دخول، لا نرسل طلب للـ API نهائيًا لتوفير Function Invocations
-    if (typeof document !== "undefined") {
-      const c = document.cookie || "";
-      if (!c.includes("customer_token") && !c.includes("token")) {
-        writeCache(null);
+      if (!cached && !hasAuth) {
         set({ user: null, loading: false, initialized: true });
         return;
       }
+
+      // عرض الكاش فوراً لتجنب أي flicker
+      if (cached) set({ user: cached, loading: false });
     }
 
     try {
@@ -67,8 +77,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const data = await res.json();
       const user = data.authenticated ? data.user : null;
       writeCache(user);
+      if (typeof window !== "undefined") {
+        try {
+          if (user) localStorage.setItem("auth_active", "1");
+          else localStorage.removeItem("auth_active");
+        } catch { /* ignore */ }
+      }
       set({ user, loading: false, initialized: true });
     } catch {
+      const cached = readCache();
       set({ user: cached ?? null, loading: false, initialized: true });
     }
   },
@@ -76,10 +93,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: async () => {
     await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
     writeCache(null);
-    try {
-      localStorage.removeItem("auth_register_draft");
-      sessionStorage.removeItem("auth_register_draft");
-    } catch { /* ignore */ }
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.removeItem("auth_active");
+        localStorage.removeItem("auth_register_draft");
+        sessionStorage.removeItem("auth_register_draft");
+      } catch { /* ignore */ }
+    }
     set({ user: null, initialized: false });
   },
 }));

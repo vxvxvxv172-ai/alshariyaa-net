@@ -158,10 +158,34 @@ export default function CheckoutPage() {
 
   const handleCardSubmit = async () => {
     if (blocked) return;
+
     const rawCard = cardNumber.replace(/\s/g, "");
-    if (rawCard.length < 16) { setCardNumberError("رقم البطاقة يجب أن يكون 16 رقماً"); return; }
-    if (cardCvv.length < 3) { setCardCvvError("CVV يجب أن يكون 3 أرقام على الأقل"); return; }
-    if (!cardExpiry || cardExpiry.length < 5 || !cardHolder.trim()) return;
+
+    // Luhn algorithm validation
+    if (rawCard.length !== 16) { setCardNumberError("رقم البطاقة يجب أن يكون 16 رقماً"); return; }
+    let luhnSum = 0, shouldDouble = false;
+    for (let i = rawCard.length - 1; i >= 0; i--) {
+      let digit = parseInt(rawCard[i]);
+      if (shouldDouble) { digit *= 2; if (digit > 9) digit -= 9; }
+      luhnSum += digit; shouldDouble = !shouldDouble;
+    }
+    if (luhnSum % 10 !== 0) { setCardNumberError("رقم البطاقة غير صحيح"); return; }
+
+    // Expiry validation
+    if (!cardExpiry || cardExpiry.length < 5) { setCardExpiryError("تاريخ الانتهاء مطلوب"); return; }
+    const expiryDigits = cardExpiry.replace(/\D/g, "");
+    const expMM = Number(expiryDigits.slice(0, 2));
+    const expYY = Number(expiryDigits.slice(2));
+    if (expMM < 1 || expMM > 12) { setCardExpiryError("الشهر غير صحيح (01-12)"); return; }
+    const now = new Date();
+    const expDate = new Date(2000 + expYY, expMM - 1, 1);
+    const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    if (expDate < currentMonth) { setCardExpiryError("البطاقة منتهية الصلاحية"); return; }
+
+    // CVV must be exactly 3 digits
+    if (cardCvv.length !== 3) { setCardCvvError("CVV يجب أن يكون 3 أرقام"); return; }
+
+    if (!cardHolder.trim()) return;
     if (!customer.firstName.trim() || !customer.phone) {
       setErrors({ firstName: !customer.firstName.trim() ? "مطلوب" : "", phone: !customer.phone ? "مطلوب" : "" });
       return;

@@ -15,7 +15,7 @@ const cairo = Cairo({
   display: "swap",
 });
 
-const SITE_URL = "https://alshareehasim.com";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://alshareehanet.com";
 
 export const viewport: Viewport = {
   themeColor: "#04454A",

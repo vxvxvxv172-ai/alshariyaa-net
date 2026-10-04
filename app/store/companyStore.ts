@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "https://alshareehasim-backend.vercel.app";
+const API = process.env.NEXT_PUBLIC_API_URL || "https://alshareehasim-backend.onrender.com";
 
 interface CompanyPublicData {
   logo: string;

@@ -16,7 +16,7 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ["/admin/", "/api/", "/checkout/verify/"],
       },
     ],
-    sitemap: "https://alshareehasim.com/sitemap.xml",
-    host: "https://alshareehasim.com",
+    sitemap: "https://alshareehanet.com/sitemap.xml",
+    host: "https://alshareehanet.com",
   };
 }
